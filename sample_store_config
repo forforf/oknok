@@ -1,0 +1,54 @@
+# A config file to hold persistent storage configuration data
+#
+# Configuration Data
+# avail_stores: Holds data needed to initialize a data store
+# store_types:  TBD (will hold data structures supported)
+# active_stores: List of stores that should be activated at run time
+
+# Store Types
+#   Will contain what data structures it supports
+#     - userdata: Complex JSON like data structures
+#     - filedata: File-like data (name, optional extension, 
+#                 datafile, file metadata, etc
+store_types:
+  couchdb: ~
+  file: ~
+  mysql: ~
+  sdb: ~
+  s3: ~
+  
+active_stores:
+  - couchdb
+  - file
+
+avail_store_defaults:
+  lookup_engine: ~
+  user: ~
+
+avail_stores:
+  iris:
+    type: couchdb
+    host: couchsurfer.iriscouch.com #=> easy to set up your own
+    user: ~
+  other_couch:
+    type: couchdb
+    host_lookup_engine: WebService
+    host: 'http://couchsurfer.iriscouch.com/ec2lookup/open_db'
+    user: open:open
+  local_filesystem1:
+    type: file
+    host: /tmp/spec1/
+    user: ~
+  local_filesystem2:
+    type: file
+    host: /tmp/spec2/
+    user: ~
+  remote_mysql:
+    type: mysql
+    host_lookup_engine: WebService 
+    host: 'http://couchsurfer.iriscouch.com/ec2lookup/open_db'
+    user: open:open
+  dev_sdb_s3:
+    type: sdb_s3
+    host: ~  #No Host needed
+    user:   <access key here>:<secret key here> #or create your own lookp service
