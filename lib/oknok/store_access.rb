@@ -12,6 +12,56 @@ module Oknok
       Data     = 3
     end
 
+    def reset_status
+      @status = Reachable::NoAccess
+    end
+    
+    #set status manually  
+    def set_status(status)
+      @status = status
+    end
+
+    #status setting helpers
+    #note setting a lower status will not change status
+    def net_connected
+      net = Reachable::Net
+      @status = net unless (@status && @status >= net)
+    end
+
+    def app_connected
+      app = Reachable::App
+      @status = app unless (@status && @status >= app)
+    end
+
+    def data_connected
+      data = Reachable::Data
+      @status = data unless (@status && @status >= data)
+    end
+
+    def connection_level
+      conn_lvl = case @status
+        when Reachable::NoAccess
+          :no_access
+        when Reachable::Net
+          :net
+        when Reachable::App
+          :app
+        when Reachable::Data
+          :data
+        else
+          :undefined
+      end
+    end
+
+    def full_connectivity?
+      data = Reachable::Data
+      return true if @status = data
+      false
+    end
+    
+
+   #Permission Behavior
+
     module Permissions
       None     = 0
       Read     = 1
@@ -73,7 +123,7 @@ module Oknok
     def self.included( host_class )
       
       #puts "###### HOST CLASS: #{host_class.inspect} ########"
-      host_class.send(:attr_reader, :read, :write, :delete)
+      host_class.send(:attr_reader, :read, :write, :delete, :status)
       host_class.extend( Reachable, Permissions )
     end
 

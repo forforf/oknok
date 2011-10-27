@@ -61,9 +61,64 @@ shared_examples_for Oknok::StoreAccess  do
      obj.permissions.should == read + write + delete
    end
 
-   it "has reachablility data" do
-     fail {"Not Implemented"}
+   it "has Reachable constants defined" do 
+     Reachable::NoAccess.should == 0
+     Reachable::Net.should == 1
+     Reachable::App.should == 2
+     Reachable::Data.should == 3
    end
+ 
+   it "can set and reset status" do |obj|
+     no_access = Reachable::NoAccess
+     net = Reachable::Net
+     app = Reachable::App
+     data = Reachable::Data
+     obj.set_status(no_access)
+     obj.status.should == no_access
+     obj.set_status(net)
+     obj.status.should == net
+     obj.set_status(app)
+     obj.status.should == app
+     obj.set_status(data)
+     obj.status.should == data
+     obj.reset_status
+     obj.status.should == no_access
+   end
+
+   it "can set network connected status" do |obj|
+     obj.net_connected
+     obj.status.should == Reachable::Net
+   end
+
+   it "can set application connected status" do |obj|
+     obj.app_connected
+     obj.status.should == Reachable::App
+     #lower connection shouldn't overwrite higher connection
+     #use set_status if that's needed
+     obj.net_connected
+     obj.status.should == Reachable::App
+   end
+
+   it "can set data connected status" do |obj|
+     obj.data_connected
+     obj.status.should == Reachable::Data
+     obj.net_connected
+     obj.status.should == Reachable::Data
+     obj.app_connected
+     obj.status.should == Reachable::Data
+   end
+
+   it "can return descriptive connection level" do |obj|
+     obj.set_status(nil)
+     obj.connection_level.should == :undefined
+     obj.set_status(Reachable::Net)
+     obj.connection_level.should == :net
+     obj.set_status(Reachable::App)
+     obj.connection_level.should == :app
+     obj.set_status(Reachable::Data)
+     obj.connection_level.should == :data
+   end
+
 end
 
 
