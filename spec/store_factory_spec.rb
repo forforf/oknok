@@ -81,7 +81,9 @@ describe Oknok::StoreBase, "common initialization tasks" do
     config_data = StoreBase.read_config_data
     @all_store_data = config_data["avail_stores"]
     @store_names = @all_store_data.keys
-    @store_objs = @store_names.map{|name| StoreBase.make(name, @oknok_name)}
+    @store_objs = @store_names.map do |name| 
+      StoreBase.make(name, @oknok_name)
+    end
   end
 
   it "has a store name" do
@@ -116,3 +118,57 @@ describe Oknok::StoreBase, "common initialization tasks" do
     end
   end
 end
+
+
+##include StoreAccess shared tests
+#require_relative 'store_access_shared_spec'
+
+#describe "included module behavior" do
+#  include Oknok
+  
+#  shared_examples_for "StoreAccess" do
+#    #StoreBase.set_config_file_location(YourConfigData::DatastoreConfig)
+#    #p Oknok::StoreBase.read_config_data
+#    let(:objs) = [1,2,3,4]
+#    it "dummy" do
+#      p "dummy"
+#    end
+#  end
+  #test module behavior
+  #oknok_name = "test_name"
+  #config_data = Oknok::StoreBase.read_config_data
+  #all_store_data = config_data["avail_stores"]
+  #store_names = all_store_data.keys
+  #store_objs = store_names.map{|name| StoreBase.make(name, oknok_name)}
+#end
+
+
+
+describe Oknok::StoreBase, "Factory, reachability" do
+  include Oknok
+
+  before :each do
+    @oknok_name = "test_name"
+    config_data = StoreBase.read_config_data
+    @all_store_data = config_data["avail_stores"]
+    @store_names = @all_store_data.keys
+    @store_objs = @store_names.map{|name| StoreBase.make(name, @oknok_name)}
+    @reach_map = {}
+    @store_objs.each do |sto|
+    end
+  end
+
+
+  it "intializes with a reachability status " do
+    @store_objs.each do |sto|
+      StoreAccess::Reachable::Levels.should include sto.status
+    end
+  end
+
+  it "should have a collection by reachability status" do
+    p StoreBase.all_reachability
+    fail {"no collection exists yet"}
+  end
+
+end
+

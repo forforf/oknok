@@ -68,7 +68,12 @@ module StoreNameLookup::WebService
   end
 
   def self.get_data(url)
-    open(url){|f| f.read}
+    begin
+      open(url){|f| f.read}
+    rescue OpenURI::HTTPError, e
+      puts "Issue with #{url.inspect}"
+      raise e
+    end
   end
 
   def self.parse(raw_json_data, *keys)

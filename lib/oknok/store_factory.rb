@@ -32,6 +32,22 @@ module Oknok
     def self.store_types
       @@store_types
     end
+
+    def self.get_my_instances
+      objs = []
+      ObjectSpace.each_object(self){|o| objs << o}
+      objs
+    end
+    #TODO: Should reachability class methods be here or module?
+    def self.find_by_reachability(reachability)
+      objs = self.get_my_instances
+      ret_val = objs.select{|o| o.status == reachability}
+    end
+
+    def self.all_reachability
+      objs = self.get_my_instances
+      objs.inject({}){|h, o| h[o.status] ? h[o.status] << o : h[o.status] = [o]; h }
+    end 
       
     def self.find_store_by_type(type)
       stores =  @@store_types.select{|candidate| candidate.store_type == type}
@@ -48,6 +64,7 @@ module Oknok
       end
       return store
     end
+
     
     def self.inherited(child)
       @@store_types << child
@@ -95,16 +112,44 @@ module Oknok
       @store_name = store_name
       @oknok_name = oknok_name
       @host = StoreNameLookup.config_reader(store_data)
+      @user = store_data['user']
+      self.undefined_reachability
     end
-
   end
 
   class NullStore < StoreBase
     #store_type set when finding type
+    def initiliaze
+      @status = Reachability::Undefined
+    end
   end
 
   class CouchDbStore < StoreBase
     self.store_type = 'couchdb'
+    def initialize(store_name, oknok_name, couch_data)
+      super(store_name, oknok_name, couch_data)
+      host = StoreNameLookup.config_reader(couch_data)
+      db_path = "/" + store_name 
+      url = URI::HTTP.build :userinfo => @user, :host => host, :path => db_path, :port => 5984
+      begin
+        @status = Reachability::Net if up? url.to_s
+        @status = Reachability::NoAccess
+        store = CouchRest.database! url.to_s
+        resp_ex = JSON.parse(`curl -sX GET #{url.to_s}`)
+        @status = Reachability::App 
+        @status = Reachability::Data if resp_ex["db_name"] == db_name
+      rescue
+        #TODO: Refactor so that each step can be tested
+        puts "WARNING: CouchDBStore at: #{url.to_s} not fully accessed"
+      end  
+    end
+
+    #TODO: Move up? somewhere else?    
+    #Mark Thomas: http://stackoverflow.com/questions/3561669/ruby-ping-for-1-9-1
+    def up?(site)
+      Net::HTTP.new(site).head('/').kind_of? Net::HTTPOK
+    end
+
   end
 
   class MysqlStore < StoreBase
@@ -115,16 +160,14 @@ module Oknok
     self.store_type = 'file'
     def initialize(store_name, oknok_name, file_data)
       super(store_name, oknok_name, file_data)
-      p file_data
-      p @host
+      @status = Reachable::Net #if filesystem is local
       file_store_path = File.join(@host, store_name)
       begin
         native_resp = FileUtils.mkdir_p(file_store_path)
-        #store_caps.add_permissions([:exists, :reach]) if native_resp == [ file_store_path]
+        @status = Reachable::Data
       rescue Errno::EACCES
-        #no permissions
+        @status = Reachable::App
       end
-      p file_store_path
     end
   end
 end

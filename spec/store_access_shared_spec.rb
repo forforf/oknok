@@ -62,6 +62,7 @@ shared_examples_for Oknok::StoreAccess  do
    end
 
    it "has Reachable constants defined" do 
+     Reachable::Undefined.should == -1
      Reachable::NoAccess.should == 0
      Reachable::Net.should == 1
      Reachable::App.should == 2
@@ -119,6 +120,11 @@ shared_examples_for Oknok::StoreAccess  do
      obj.connection_level.should == :data
    end
 
+   it "has undefined status for objects unable to support access" do |obj|
+     obj.undefined_reachability
+     obj.status.should == Reachable::Undefined
+   end
+
 end
 
 
@@ -127,5 +133,7 @@ describe Oknok::StoreAccess do
     @obj = StoreAccessTest.new
   end
   
-  it_should_behave_like Oknok::StoreAccess, @obj
+  it_should_behave_like Oknok::StoreAccess do
+    let(:obj) {@obj}
+  end
 end

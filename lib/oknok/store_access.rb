@@ -5,11 +5,13 @@ module Oknok
     #  net(work)       - Network Reachable
     #  app(lication)   - Datastore Application Reachable
     #  data            - User has access to datastore
-    module Reachable
-      NoAccess = 0
-      Net      = 1
-      App      = 2
-      Data     = 3
+    module Reachable #Class Level
+      Undefined  = -1 
+      NoAccess   = 0
+      Net        = 1
+      App        = 2
+      Data       = 3
+      Levels = [Undefined,NoAccess,Net,App,Data]
     end
 
     def reset_status
@@ -48,7 +50,7 @@ module Oknok
           :app
         when Reachable::Data
           :data
-        else
+        else Reachable::Undefined
           :undefined
       end
     end
@@ -57,6 +59,14 @@ module Oknok
       data = Reachable::Data
       return true if @status = data
       false
+    end
+
+    #TODO: Introspect for undefined_handler?
+    #Currently the host object has to declare
+    #it can't support reachable methods
+    #(e.g.) the NullStore class
+    def undefined_reachability
+      @status = Reachable::Undefined
     end
     
 
