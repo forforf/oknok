@@ -5,25 +5,19 @@ require_relative "../lib/oknok/store_base"
 module OknokConfigData
   Config = {
     'avail_stores' => {
-      'iris' => {
+      'couchstore' => {
          'type' => 'couchdb',
          'host' => 'couchsurfer.iriscouch.com', #=> easy to set up your own
          'user' => nil
       },
-    'other_couch' => {
-       'type' => 'couchdb',
-       'host_lookup_engine' => 'WebService',
-       'host' => 'http://couchsurfer.iriscouch.com/ec2lookup/open_db',
-       'user' => ' open:open'
-     },
-     'local_filesystem1' => {
+     'local_filesystem' => {
         'type' => 'file',
-        'host' => '/tmp/spec1/',
+        'host' => '/tmp/spec/',
         'user' => nil
      },
-     'local_filesystem2' => {
+     'local_filesystem_dup' => {
         'type' => 'file',
-        'host' => '/tmp/spec2/',
+        'host' => '/tmp/spec/',
         'user' => nil
      },
      'remote_mysql' => {
@@ -31,9 +25,9 @@ module OknokConfigData
         'host_lookup_engine' => 'WebService',
         'host' => 'http://couchsurfer.iriscouch.com/ec2lookup/open_db',
         'init_db' => 'oknok',
-        'user' => ' open:open'
+        'user' => 'open:open'
       },
-      'dev_sdb_s3' => {
+      'test_sdb_s3' => {
         'type' => 'sdb_s3',
         'host' => nil,   #No Host needed
         'user' => ' <access key here>:<secret key here>' #or create your own lookp service
@@ -43,18 +37,34 @@ module OknokConfigData
 
 end
 
-describe Oknok::StoreBase, "common initialization tasks" do
+
+describe Oknok::StoreBase, "basic initialization tasks" do
   include Oknok
 
   
   before :each do
-    #config_data = OknokConfigData::Config
-    @all_store_data = config_data["avail_stores"]
-    #@store_names = @all_store_data.keys
-    @store_objs = []
-    @all_store_data.each do |sto_name, sto_config|
-      @store_objs << StoreBase.new(sto_name)
+    config_data = OknokConfigData::Config["avail_stores"]
+    @couch_args    = ["couchstore", config_data["couchstore"]]
+    @file_args     = ["local_filesystem",config_data["local_filesystem"]]
+    @file_dup_args = ["local_filesystem_dup", config_data["local_filesystem_dup"]]
+    @mysql_args    = ["remote_mysql", config_data["remote_mysql"]]
+    @sdb_s3_args   = ["test_sdb_s3", config_data["test_sdb_s3"]]
+    @null_args     = ["any_store_name", {}]
+    @class_data_map = {
+      CouchDbStore => @couch_args,
+      FileStore => @file_args,
+      MysqlStore => @mysql_args,
+      SdbS3Store => @sdb_s3_args,
+      NullStore => @null_args
+    }
+  end
+
+  it "initializes from config data" do
+    sto_objs = []
+    @class_data_map.each do |klass, args|
+      sto_objs << klass.new(*args)
     end
+    sto_objs
   end
 
   it "has a store name" do
