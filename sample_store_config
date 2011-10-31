@@ -47,6 +47,7 @@ avail_stores:
     type: mysql
     host_lookup_engine: WebService 
     host: 'http://couchsurfer.iriscouch.com/ec2lookup/open_db'
+    init_db: oknok
     user: open:open
   dev_sdb_s3:
     type: sdb_s3

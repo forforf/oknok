@@ -23,58 +23,59 @@ module Oknok
     #  updates the @@store_types and checks for duplicate
     #  'store_name's.  This would allow catching a duplicate
     #  At assignemnet time rather than run time
-    class << self; attr_accessor :all_classes; end
+    class << self; attr_accessor :all_classes, :store_type; end
+    self.store_type = nil
     self.all_classes = []
    
-    @@config_file_location = nil 
+    #@@config_file_location = nil 
     
     #@@all_classes = []
-    @@store_instances = []
+    #@@store_instances = []
     
-    def self.store_types
-      @@store_types
-    end
+    #def self.store_types
+    #  @@store_types
+    #end
 
-    def self.get_my_instances
+    #def self.get_my_instances
       #objs = []
       #ObjectSpace.each_object(self){|o| objs << o}
       #objs
-      @@store_instances
-    end
+    #  @@store_instances
+    #end
     #TODO: Should reachability class methods be here or module?
-    def self.find_by_reachability(reachability)
-      objs = self.get_my_instances
-      ret_val = objs.select{|o| o.status == reachability}
-    end
+    #def self.find_by_reachability(reachability)
+    #  objs = self.get_my_instances
+    #  ret_val = objs.select{|o| o.status == reachability}
+    #end
 
-    def self.all_reachability
-      objs = self.get_my_instances
-      objs.inject({}) do |h, o|
-         h[o.status] ? h[o.status] << o : h[o.status] = [o]
-         h[o.status].uniq!
-         h 
-      end
-    end 
+    #def self.all_reachability
+    #  objs = self.get_my_instances
+    #  objs.inject({}) do |h, o|
+    #     h[o.status] ? h[o.status] << o : h[o.status] = [o]
+    #     h[o.status].uniq!
+    #     h 
+    #  end
+    #end 
       
-    def self.find_store_by_type(type)
-      stores =  @@store_types.select{|candidate| candidate.store_type == type}
-      #TODO: Need test case for duplicate types
-      store = case stores.size
-        when stores.size > 1
-          raise IndexError,
-            "More than one Store Class found for type: #{type}" 
-        when 1
-          store = stores.first
-        when 0
-          NullStore.store_type = type
-          NullStore #no matching store found
-      end
-      return store
-    end
+    #def self.find_store_by_type(type)
+    #  stores =  @@store_types.select{|candidate| candidate.store_type == type}
+    #  #TODO: Need test case for duplicate types
+    #  store = case stores.size
+    #    when stores.size > 1
+    #      raise IndexError,
+    #        "More than one Store Class found for type: #{type}" 
+    #    when 1
+    #      store = stores.first
+    #    when 0
+    #      NullStore.store_type = type
+    #      NullStore #no matching store found
+    #  end
+    #  return store
+    #end
     
     #keep 
     def self.inherited(child)
-      @@all_classes << child unless @@all_classes include child
+      self.all_classes << child unless self.all_classes.include? child
     end
 
     #def self.set_config_file_location(f)
@@ -103,27 +104,27 @@ module Oknok
     #  avail_stores = config_data['avail_stores']
     #end
 
-    def self.make(store_name, oknok_name=nil)
-      avail_stores = self.get_avail_stores
-      raise NameError,
-        "Store: #{store_name.inspect} was not found in the configuration file" \
-        unless avail_stores.keys.include? store_name
-      store_data = avail_stores[store_name]
-      store_class = self.find_store_by_type(store_data['type'])
-      store = store_class.new(store_name, oknok_name, store_data)
-    end
+    #def self.make(store_name, oknok_name=nil)
+    #  avail_stores = self.get_avail_stores
+    #  raise NameError,
+    #    "Store: #{store_name.inspect} was not found in the configuration file" \
+    #    unless avail_stores.keys.include? store_name
+    #  store_data = avail_stores[store_name]
+    #  store_class = self.find_store_by_type(store_data['type'])
+    #  store = store_class.new(store_name, oknok_name, store_data)
+    #end
 
     attr_accessor :store_name, :oknok_name, :host
     attr_reader :store_data
 
-    def initialize(store_name, oknok_name, store_data)
+    def initialize(store_name, store_data)
       @store_name = store_name
-      @oknok_name = oknok_name
+      #@oknok_name = oknok_name
       @store_data = store_data
       @host = StoreNameLookup.config_reader(store_data)
       @user = store_data['user']
-      @@store_instances << self
-      self.undefined_reachability
+      #@@store_instances << self
+      #self.undefined_reachability
     end
 
     def eql? other
@@ -144,11 +145,11 @@ module Oknok
 
   class CouchDbStore < StoreBase
     self.store_type = 'couchdb'
-    def initialize(store_name, oknok_name, couch_data)
-      super(store_name, oknok_name, couch_data)
-      host = StoreNameLookup.config_reader(couch_data)
+    def initialize(store_name, couch_data)
+      super(store_name, couch_data)
+      #host = StoreNameLookup.config_reader(couch_data)
       db_path = "/" + store_name 
-      url = URI::HTTP.build :userinfo => @user, :host => host, :path => db_path, :port => 5984
+      url = URI::HTTP.build :userinfo => @user, :host => @host, :path => db_path, :port => 5984
       begin
         @status = Reachable::Net if up? url.to_s
         #@status = Reachable::NoAccess
@@ -158,7 +159,7 @@ module Oknok
         @status = Reachable::Data if resp_ex["db_name"] == db_name
       rescue
         #TODO: Refactor so that each step can be tested
-        puts "WARNING: CouchDBStore at: #{url.to_s} not fully accessed"
+        puts "WARNING: CouchDBStore #{store_name} not fully accessed"
       end  
     end
 
@@ -175,15 +176,12 @@ module Oknok
 
     attr_reader :mysql_connection
 
-    def initialize(store_name, oknok_name, mysql_data)
-      super(store_name, oknok_name, mysql_data)
+    def initialize(store_name, mysql_data)
+      super(store_name, mysql_data)
       #init db is just for initial connection purposes
       #TODO: find an alternate db library that doesn't require pre-existing db
       init_db = mysql_data["init_db"] || store_name
-      p store_name
-      p mysql_data
       #host = StoreNameLookup.config_reader(mysql_data)
-      p @host
       dbi_host = "DBI:Mysql:#{init_db}:#{host}"
       user, pw = @user.split ":"
       begin
@@ -212,8 +210,8 @@ module Oknok
 
   class FileStore < StoreBase
     self.store_type = 'file'
-    def initialize(store_name, oknok_name, file_data)
-      super(store_name, oknok_name, file_data)
+    def initialize(store_name, file_data)
+      super(store_name, file_data)
       @status = Reachable::Net #if filesystem is local
       file_store_path = File.join(@host, store_name)
       begin
@@ -224,6 +222,11 @@ module Oknok
       end
     end
   end
+
+  class SdbS3Store < StoreBase
+    self.store_type = 'sdb_s3'
+  end
+
 end
 #p Tinkit::StoreBase.set_config_file_location(Tinkit::DatastoreConfig)
 
