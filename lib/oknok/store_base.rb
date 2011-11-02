@@ -18,14 +18,30 @@ module Oknok
   class StoreBase
     include StoreAccess
 
-    #TODO: Refactor @@store_types
-    #  calling StoreName.store_type = 'store_name'
-    #  updates the @@store_types and checks for duplicate
-    #  'store_name's.  This would allow catching a duplicate
-    #  At assignemnet time rather than run time
+    #
+
     class << self; attr_accessor :all_classes, :store_type; end
     self.store_type = nil
     self.all_classes = []
+    
+    def status_stub
+    end
+    
+    def connection_status(stat, *args)
+      stat ||= :undefined
+      @status_obj = case stat
+        when :undefined
+          Undefined.new
+        when :not_found
+          NotFound.new
+        when :unavailable
+          Unavailable.new
+        when :access_denied
+          AccessDenied.new
+        else
+          raise "Unable to determine connection status"
+      end
+    end
    
     #@@config_file_location = nil 
     
@@ -118,6 +134,8 @@ module Oknok
     attr_reader :store_data
 
     def initialize(store_name, store_data)
+      #default status
+      connection_status(:undefined)
       @store_name = store_name
       #@oknok_name = oknok_name
       @store_data = store_data
@@ -139,7 +157,7 @@ module Oknok
   class NullStore < StoreBase
     #store_type set when finding type
     def initiliaze
-      @status = Reachable::Undefined
+      @status = status_stub
     end
   end
 
@@ -151,12 +169,12 @@ module Oknok
       db_path = "/" + store_name 
       url = URI::HTTP.build :userinfo => @user, :host => @host, :path => db_path, :port => 5984
       begin
-        @status = Reachable::Net if up? url.to_s
+        @status = status_stub
         #@status = Reachable::NoAccess
         store = CouchRest.database! url.to_s
         resp_ex = JSON.parse(`curl -sX GET #{url.to_s}`)
-        @status = Reachable::App 
-        @status = Reachable::Data if resp_ex["db_name"] == db_name
+        @status = status_stub
+        @status = status_stub
       rescue
         #TODO: Refactor so that each step can be tested
         puts "WARNING: CouchDBStore #{store_name} not fully accessed"
@@ -187,7 +205,7 @@ module Oknok
       begin
         store = DBI.connect dbi_host, user, pw
         row = store.select_one("SELECT VERSION()")
-        @status = Reachable::App if row[0].to_f > 5.0
+        @status = status_stub
         store.do "DROP TABLE IF EXISTS dummy"
         store.do "CREATE TABLE dummy (
                     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -196,11 +214,11 @@ module Oknok
         rows = store.do "INSERT INTO dummy(test_data)
                            VALUES
                              ('Test1'), ('Test2')"
-        @status = Reachable::Data if rows > 1
+        @status = status_stub
         store.do "DROP TABLE IF EXISTS dummy"
      rescue DBI::DatabaseError => e
        raise e
-       @status = Reachable::NoAccess
+       @status = status_stub
      ensure
        store.disconnect if store
      end
@@ -212,13 +230,13 @@ module Oknok
     self.store_type = 'file'
     def initialize(store_name, file_data)
       super(store_name, file_data)
-      @status = Reachable::Net #if filesystem is local
+      @status = status_stub
       file_store_path = File.join(@host, store_name)
       begin
         native_resp = FileUtils.mkdir_p(file_store_path)
-        @status = Reachable::Data
+        @status = status_stub
       rescue Errno::EACCES
-        @status = Reachable::App
+        @status = status_stub
       end
     end
   end

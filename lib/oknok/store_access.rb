@@ -1,6 +1,48 @@
 module Oknok
   module StoreAccess
-
+    class Status
+      @@subclasses = []
+      
+      def self.inherited(subclass)
+        @@subclasses << subclass
+      end
+      
+      #checks if class inherited from Status
+      #but doesn't include Status
+      def self.status_subclass?
+        true if @@subclasses.include? self
+      end
+    end
+    class NoAccess < Status
+    end
+    class Undefined < NoAccess
+    end
+    class NotFound < NoAccess
+    end
+    class Unavailable < NoAccess
+    end
+    class AccessDenied < NoAccess
+    end
+    class Access < Status
+    end
+    
+    def set_status(status_class)
+      @status_obj = status_class.new
+    end
+    
+    #some metaprogramming so that when
+    #this module is included, the class methods
+    #are also applied to the host class
+    def self.included( host_class )
+    #  
+    #  #puts "###### HOST CLASS: #{host_class.inspect} ########"
+      host_class.send(:attr_reader, :status_obj)
+    #  #host_class.extend(  )
+    end
+  end
+end
+  
+=begin
     # Access Hierarchy
     #  net(work)       - Network Reachable
     #  app(lication)   - Datastore Application Reachable
@@ -140,3 +182,4 @@ module Oknok
     #Regular Methods
   end
 end
+=end
