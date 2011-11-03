@@ -146,7 +146,7 @@ module Oknok
         #TODO: I don't like the long if statement with returns, but can't think of a cleaner way at the moment
         if resp_ex.respond_to?(:keys) && resp_ex["db_name"] == store_name
           init_status = :access
-           @status_obj = connection_status(init_status)
+          @status_obj = connection_status(init_status)
           dummy_data = {:dummy => "Dummy"}.to_json
           #check if store can be written to (and read)
           resp_rw = JSON.parse(`curl -sX POST #{url.to_s} -H 'Content-Type:application/json' -d \'#{dummy_data}\'`)
@@ -174,9 +174,9 @@ module Oknok
 
     #TODO: Move up? somewhere else?    
     #Mark Thomas: http://stackoverflow.com/questions/3561669/ruby-ping-for-1-9-1
-    def up?(site)
-      Net::HTTP.new(site).head('/').kind_of? Net::HTTPOK
-    end
+    #def up?(site)
+    #  Net::HTTP.new(site).head('/').kind_of? Net::HTTPOK
+    #end
 
   end
 
@@ -196,7 +196,7 @@ module Oknok
       begin
         store = DBI.connect dbi_host, user, pw
         row = store.select_one("SELECT VERSION()")
-        @status = status_stub
+        @status_obj = connection_status(:access)
         store.do "DROP TABLE IF EXISTS dummy"
         store.do "CREATE TABLE dummy (
                     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -208,9 +208,9 @@ module Oknok
         @status = status_stub
         store.do "DROP TABLE IF EXISTS dummy"
      rescue DBI::DatabaseError => e
-       raise e
-       @status = status_stub
+       @status_obj = connection_status(:not_found)
      ensure
+       raise "Status Object not defined" unless @status_obj
        store.disconnect if store
      end
      @mysql_connection = [dbi_host, user, pw]
@@ -220,20 +220,45 @@ module Oknok
   class FileStore < StoreBase
     self.store_type = 'file'
     def initialize(store_name, file_data)
+      init_status = nil
       super(store_name, file_data)
       @status = status_stub
       file_store_path = File.join(@host, store_name)
       begin
         native_resp = FileUtils.mkdir_p(file_store_path)
-        @status = status_stub
+        @status_obj = connection_status(:access)
       rescue Errno::EACCES
-        @status = status_stub
+        @status_obj = connection_status(:access_denied)
       end
     end
   end
 
   class SdbS3Store < StoreBase
     self.store_type = 'sdb_s3'
+    def initialize(store_name, sdb_s3_data)
+      super(store_name, sdb_s3_data)
+      userinfo = sdb_s3_data[:user]
+      if userinfo
+        aws_keys = userinfo.split ":"
+        access_key = aws_keys.first
+        sa_key = aws_keys.last
+        if access_key && sa_key
+          svc_options = {:access_key_id => access_key, :secret_access_key => sa_key}
+          sdb_store = AwsSdb::Service.new(svc_options)
+          begin
+            sdb_store.create_domain(db_name)
+          rescue AwsSdb::ConnectionError => e
+            @status_obj = connection_status(:access_denied) if e.msg =~ /403/
+          rescue
+            @status_obj = connection_status(:unavailable)
+          end
+        else
+          @status_obj = connection_status(:undefined)
+        end
+      else
+        @status_obj = connection_status(:undefined)
+      end
+    end
   end
 
 end

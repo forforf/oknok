@@ -3,6 +3,8 @@ require_relative "../lib/oknok/store_base"
 #require 'psych'
 
 module OknokConfigData
+  @@ak = ENV['AWS_ACCESS_KEY_ID']
+  @@sak = ENV['AWS_ACCESS_KEY_SECRET']
   Config = {
     'avail_stores' => {
       'couchstore' => {
@@ -30,7 +32,7 @@ module OknokConfigData
       'test_sdb_s3' => {
         'type' => 'sdb_s3',
         'host' => nil,   #No Host needed
-        'user' => ' <access key here>:<secret key here>' #or create your own lookp service
+        'user' => "#{@@ak}:#{@@sak}" #or create your own lookp service
       }
     }
   }
@@ -216,6 +218,12 @@ describe "StoreAccess with real data store object" do
     @file_obj = FileStore.new(*@file_args)
     @couch_args    = ["couchstore", config_data["couchstore"]]
     @couch_obj = CouchDbStore.new(*@couch_args)
+    @mysql_args    = ["remote_mysql", config_data["remote_mysql"]]
+    @mysql_obj = MysqlStore.new(*@mysql_args)
+    @sdb_s3_args   = ["test_sdb_s3", config_data["test_sdb_s3"]]
+    @sdb_s3_obj = SdbS3Store.new(*@sdb_s3_args)
+    @null_args     = ["any_store_name", {}]
+    @null_obj = NullStore.new(*@null_args)
   end
   
   it_should_behave_like Oknok::StoreAccess do
@@ -226,9 +234,21 @@ describe "StoreAccess with real data store object" do
     let(:obj) {@couch_obj}
   end
   
-  it "has access status object" do
-    p @couch_obj.status_obj
+  it "can access couch obj" do
+    @couch_obj.status_obj.class.should == StoreAccess::Access
   end  
+  
+  it "can access file obj" do
+    @file_obj.status_obj.class.should == StoreAccess::Access
+  end
+  
+  it "can access mysql obj" do
+    @mysql_obj.status_obj.class.should == StoreAccess::Access
+  end
+  
+  #it "can access sdb_s3 obj" do
+  #  @sdb_s3_obj.status_obj.class.should == StoreAccess::Access
+  #end
   
 end
 =begin
