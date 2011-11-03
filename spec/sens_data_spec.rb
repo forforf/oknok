@@ -50,17 +50,3 @@ describe Oknok::SensData do
     SensData.load(@tmp_file).should == @data
   end
 end
-=begin
-  it "should work with a valid file location" do
-    FileUtils.touch(@tmp_file)
-    TinkitConfig.set_config_file_location(@tmp_file).should == @tmp_file
-  end
-
-  #it "should raise an error if the file has been moved or deleeted" do
-  #  moving_file = "/tmp/sens_data"
-  #  `touch #{moving_file}`
-  #  TinkitConfig.set_config_file_location(moving_file).should == moving_file
-  #  `rm #{moving_file}`
-
-end
-=end
