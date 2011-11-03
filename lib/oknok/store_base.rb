@@ -7,26 +7,19 @@ require 'fileutils'
 require 'aws_sdb'  #published as gem forforf-aws-sdb
 require 'aws/s3'  #TODO: Create config for this model too
 
-require_relative 'sens_data' #config file reader
 require_relative 'store_access' #checks store accessibility
 require_relative 'store_name_lookup' #nameserver like function
 
-#Returns the persistent data stores based on config file
+#Provides persistent stores classes
   
 module Oknok
 
   class StoreBase
     include StoreAccess
-
-    #
-
     class << self; attr_accessor :all_classes, :store_type; end
     self.store_type = nil
     self.all_classes = []
-    
-    def status_stub
-    end
-    
+        
     def connection_status(stat, *args)
       stat ||= :undefined
       @status_obj = case stat
@@ -44,56 +37,10 @@ module Oknok
           raise "Unable to determine connection status based on: #{stat.inspect}"
       end
     end
-   
-    #@@config_file_location = nil 
-    
-    #@@all_classes = []
-    #@@store_instances = []
-    
-    #def self.store_types
-    #  @@store_types
-    #end
 
-    #def self.get_my_instances
-      #objs = []
-      #ObjectSpace.each_object(self){|o| objs << o}
-      #objs
-    #  @@store_instances
-    #end
-    #TODO: Should reachability class methods be here or module?
-    #def self.find_by_reachability(reachability)
-    #  objs = self.get_my_instances
-    #  ret_val = objs.select{|o| o.status == reachability}
-    #end
-
-    #def self.all_reachability
-    #  objs = self.get_my_instances
-    #  objs.inject({}) do |h, o|
-    #     h[o.status] ? h[o.status] << o : h[o.status] = [o]
-    #     h[o.status].uniq!
-    #     h 
-    #  end
-    #end 
-      
-
-    
-    #keep 
     def self.inherited(child)
       self.all_classes << child unless self.all_classes.include? child
     end
-
-
-
-
-    #def self.make(store_name, oknok_name=nil)
-    #  avail_stores = self.get_avail_stores
-    #  raise NameError,
-    #    "Store: #{store_name.inspect} was not found in the configuration file" \
-    #    unless avail_stores.keys.include? store_name
-    #  store_data = avail_stores[store_name]
-    #  store_class = self.find_store_by_type(store_data['type'])
-    #  store = store_class.new(store_name, oknok_name, store_data)
-    #end
 
     attr_accessor :store_name, :oknok_name, :host
     attr_reader :store_data
@@ -102,12 +49,9 @@ module Oknok
       #default status
       connection_status(:undefined)
       @store_name = store_name
-      #@oknok_name = oknok_name
       @store_data = store_data
       @host = StoreNameLookup.config_reader(store_data)
       @user = store_data['user']
-      #@@store_instances << self
-      #self.undefined_reachability
     end
 
     def eql? other
@@ -131,7 +75,6 @@ module Oknok
     def initialize(store_name, couch_data)
       super(store_name, couch_data)
       init_status = nil
-      #host = StoreNameLookup.config_reader(couch_data)
       db_path = "/" + store_name 
       url = URI::HTTP.build :userinfo => @user, :host => @host, :path => db_path, :port => 5984
       begin
@@ -172,12 +115,6 @@ module Oknok
       end
     end
 
-    #TODO: Move up? somewhere else?    
-    #Mark Thomas: http://stackoverflow.com/questions/3561669/ruby-ping-for-1-9-1
-    #def up?(site)
-    #  Net::HTTP.new(site).head('/').kind_of? Net::HTTPOK
-    #end
-
   end
 
   class MysqlStore < StoreBase
@@ -190,7 +127,6 @@ module Oknok
       #init db is just for initial connection purposes
       #TODO: find an alternate db library that doesn't require pre-existing db
       init_db = mysql_data["init_db"] || store_name
-      #host = StoreNameLookup.config_reader(mysql_data)
       dbi_host = "DBI:Mysql:#{init_db}:#{host}"
       user, pw = @user.split ":"
       begin
@@ -205,7 +141,6 @@ module Oknok
         rows = store.do "INSERT INTO dummy(test_data)
                            VALUES
                              ('Test1'), ('Test2')"
-        @status = status_stub
         store.do "DROP TABLE IF EXISTS dummy"
      rescue DBI::DatabaseError => e
        @status_obj = connection_status(:not_found)
@@ -222,7 +157,6 @@ module Oknok
     def initialize(store_name, file_data)
       init_status = nil
       super(store_name, file_data)
-      @status = status_stub
       file_store_path = File.join(@host, store_name)
       begin
         native_resp = FileUtils.mkdir_p(file_store_path)
@@ -250,7 +184,11 @@ module Oknok
             connection_status(:access)
           rescue AwsSdb::ConnectionError => e
             puts "Rescued ConnectionError: #{e.message}"
-            @status_obj = connection_status(:access_denied) if e.msg =~ /403/
+            if e.message =~ /403/
+              @status_obj = connection_status(:access_denied)
+            else
+              @status_obj = connection_status(:unavailable)
+            end
           rescue => e
             puts "Rescued #{e.message}"
             @status_obj = connection_status(:unavailable)
@@ -265,8 +203,3 @@ module Oknok
   end
 
 end
-#p Tinkit::StoreBase.set_config_file_location(Tinkit::DatastoreConfig)
-
-
-#file_store = Tinkit::StoreBase.make('tmp_files', :bar)
-#p file_store
