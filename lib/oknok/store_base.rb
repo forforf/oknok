@@ -38,8 +38,10 @@ module Oknok
           Unavailable.new
         when :access_denied
           AccessDenied.new
+        when :access
+          Access.new
         else
-          raise "Unable to determine connection status"
+          raise "Unable to determine connection status based on: #{stat.inspect}"
       end
     end
    
@@ -73,52 +75,15 @@ module Oknok
     #  end
     #end 
       
-    #def self.find_store_by_type(type)
-    #  stores =  @@store_types.select{|candidate| candidate.store_type == type}
-    #  #TODO: Need test case for duplicate types
-    #  store = case stores.size
-    #    when stores.size > 1
-    #      raise IndexError,
-    #        "More than one Store Class found for type: #{type}" 
-    #    when 1
-    #      store = stores.first
-    #    when 0
-    #      NullStore.store_type = type
-    #      NullStore #no matching store found
-    #  end
-    #  return store
-    #end
+
     
     #keep 
     def self.inherited(child)
       self.all_classes << child unless self.all_classes.include? child
     end
 
-    #def self.set_config_file_location(f)
-    #  raise IOError, 
-    #      "Unable to locate file: #{f.inspect}, does it exist?" \
-    #     unless File.exist?(f)
-    #  @@config_file_location = f
-    #end
 
-    #def self.get_config_file_location
-    #  @@config_file_location
-    #end
 
-    #def self.read_config_data
-    #  raise IOError,
-    #    "Unable to find config file: #{@@config_file_location},\n was it moved?" \
-    #    unless File.exist?(@@config_file_location)
-    #  config_data =  Oknok::SensData.load(@@config_file_location)
-    #end
-
-    #def self.get_avail_stores
-    #  config_data = read_config_data
-    #  raise NameError,
-    #    "Config file does not have list of available stores" \
-    #    unless config_data.keys.include? 'avail_stores'
-    #  avail_stores = config_data['avail_stores']
-    #end
 
     #def self.make(store_name, oknok_name=nil)
     #  avail_stores = self.get_avail_stores
@@ -165,20 +130,46 @@ module Oknok
     self.store_type = 'couchdb'
     def initialize(store_name, couch_data)
       super(store_name, couch_data)
+      init_status = nil
       #host = StoreNameLookup.config_reader(couch_data)
       db_path = "/" + store_name 
       url = URI::HTTP.build :userinfo => @user, :host => @host, :path => db_path, :port => 5984
       begin
-        @status = status_stub
-        #@status = Reachable::NoAccess
         store = CouchRest.database! url.to_s
+      rescue => e
+        raise LoadError, 
+          "Failed to initialize #{self.class} \n Full Error Message:\n #{e.message}\n#{e.backtrace}"
+      end
+      begin
         resp_ex = JSON.parse(`curl -sX GET #{url.to_s}`)
-        @status = status_stub
-        @status = status_stub
-      rescue
-        #TODO: Refactor so that each step can be tested
-        puts "WARNING: CouchDBStore #{store_name} not fully accessed"
-      end  
+        #conditions to complicated for case statement
+        #TODO: I don't like the long if statement with returns, but can't think of a cleaner way at the moment
+        if resp_ex.respond_to?(:keys) && resp_ex["db_name"] == store_name
+          init_status = :access
+           @status_obj = connection_status(init_status)
+          dummy_data = {:dummy => "Dummy"}.to_json
+          #check if store can be written to (and read)
+          resp_rw = JSON.parse(`curl -sX POST #{url.to_s} -H 'Content-Type:application/json' -d \'#{dummy_data}\'`)
+          #set rw permissions on acces objectif resp_rw["id"]       
+        else
+          if resp_ex.to_s =~ /Host not found/
+            init_status = :not_found
+             @status_obj = connection_status(init_status)
+          elsif resp_ex.respond_to?(:keys) && resp_ex["error"] == "unauthorized"
+            init_status = :access_denied
+             @status_obj = connection_status(init_status)
+          else
+            init_status = :unavailable
+             @status_obj = connection_status(init_status)
+          end
+        end
+      rescue => e
+        puts "RESCUED #{e.message}"
+        init_status = :unavailable
+         @status_obj = connection_status(init_status)
+      ensure
+        raise "Logic Error, @status_obj should exist and be set" unless @status_obj
+      end
     end
 
     #TODO: Move up? somewhere else?    

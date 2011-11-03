@@ -152,6 +152,12 @@ describe Oknok::StoreBase, "basic initialization tasks" do
     #  collected_instances = StoreBase.get_my_instances
     #  collected_instances.size.should == num_objs_made
     #end
+  #end
+  
+    describe "store_access shared examples" do
+      it "has access status" do
+      end
+    end
   end
 end
 
@@ -202,17 +208,28 @@ end
 
 
 
-describe "StoreAccess with real example" do
+describe "StoreAccess with real data store object" do
   include Oknok
   before :each do
     config_data = OknokConfigData::Config['avail_stores']
     @file_args     = ["local_filesystem",config_data["local_filesystem"]]
-    @obj = FileStore.new(*@file_args)
+    @file_obj = FileStore.new(*@file_args)
+    @couch_args    = ["couchstore", config_data["couchstore"]]
+    @couch_obj = CouchDbStore.new(*@couch_args)
   end
   
   it_should_behave_like Oknok::StoreAccess do
-    let(:obj) {@obj}
+    let(:obj) {@file_obj}
   end
+  
+  it_should_behave_like Oknok::StoreAccess do
+    let(:obj) {@couch_obj}
+  end
+  
+  it "has access status object" do
+    p @couch_obj.status_obj
+  end  
+  
 end
 =begin
 describe "included module behavior" do
