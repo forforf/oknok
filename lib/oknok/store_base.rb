@@ -122,7 +122,7 @@ module Oknok
   class NullStore < StoreBase
     #store_type set when finding type
     def initiliaze
-      @status = status_stub
+      @status_obj = connection_status(:undefined)
     end
   end
 
@@ -237,7 +237,7 @@ module Oknok
     self.store_type = 'sdb_s3'
     def initialize(store_name, sdb_s3_data)
       super(store_name, sdb_s3_data)
-      userinfo = sdb_s3_data[:user]
+      userinfo = sdb_s3_data["user"]
       if userinfo
         aws_keys = userinfo.split ":"
         access_key = aws_keys.first
@@ -246,10 +246,13 @@ module Oknok
           svc_options = {:access_key_id => access_key, :secret_access_key => sa_key}
           sdb_store = AwsSdb::Service.new(svc_options)
           begin
-            sdb_store.create_domain(db_name)
+            sdb_store.create_domain(store_name)
+            connection_status(:access)
           rescue AwsSdb::ConnectionError => e
+            puts "Rescued ConnectionError: #{e.message}"
             @status_obj = connection_status(:access_denied) if e.msg =~ /403/
-          rescue
+          rescue => e
+            puts "Rescued #{e.message}"
             @status_obj = connection_status(:unavailable)
           end
         else

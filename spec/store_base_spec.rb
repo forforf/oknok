@@ -246,9 +246,13 @@ describe "StoreAccess with real data store object" do
     @mysql_obj.status_obj.class.should == StoreAccess::Access
   end
   
-  #it "can access sdb_s3 obj" do
-  #  @sdb_s3_obj.status_obj.class.should == StoreAccess::Access
-  #end
+  it "can access sdb_s3 obj" do
+    @sdb_s3_obj.status_obj.class.should == StoreAccess::Access
+  end
+  
+  it "sets NullStore Access to undefined" do
+    @null_obj.status_obj.class.should == StoreAccess::Undefined
+  end
   
 end
 =begin
