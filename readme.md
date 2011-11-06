@@ -1,6 +1,9 @@
+#Oknok Datastore Loader
+
 Oknok uses a configuration file to load a set of persistent data stores.
 
-## An example configuration file that will load a CouchDb instance located at iriscouch.com.
+## The Basics
+### An example configuration file that will load a CouchDb instance located at iriscouch.com.
 
     #file: /path/to/config/file/config_file_name.yaml
     
@@ -10,31 +13,44 @@ Oknok uses a configuration file to load a set of persistent data stores.
         host: couchsurfer.iriscouch.com  #location of data store
         user: ~                          #specific user data required (i.e., username/password)
 
-### Load the data stores:
+#### Load the data stores:
     
     require 'oknok'
     
     stores = Oknok::StoreTracker.new("/path/to/config/file/config_file_name.yaml")
     
-### And to get a "handle" on the native data store access object
+#### And to get a "handle" on the native data store access object
     
     store = stores.first   #we only had one store for this example
     store.store_handle     #=> CouchRest::Database object
     
+## Unreachable Datastores
 ### What if there's no answer for oknok (i.e., the store is down or unreachable)?
 
+Each oknok store will have a status associated with it, that will indicate whether the store was successfully connected or not.
+ 
+    #successful connection 
     store.status_obj
-    #=> Oknok::StoreAccess::Access
+    #=> Oknok::StoreAccess::Access object
     
-Each store has a status object that identifies whether the store was accessible or not.  Valid classes
+    #unsuccessful connection
+    store.store_handle
+    #=> nil
+    store_status_obj
+    #=> Oknok::StoreAccess::NotFound object
+    
+Connection Status Objects:
     
     Oknok::StoreAccess::Access          -  Store was successfully accessed
     Oknok::StoreAccess::AccessDenied    -  The data store application denied access for some reason
     Oknok::StoreAccess::Unavailable     -  The data store application didn't respond
     Oknok::StoreAccess::NotFound        -  The data store application couldn't find the data store specified
     Oknok::StoreAccess::Undefined       -  Unable to determine the type of data store
+
     
-##### Of course, this is overkill for accessing a single data store, what it's really intended for is
+Important Note: Exceptions relating to connection failures are rescued and mapped to the appropriate connection status. This means you don't need all of your data stores to be available concurrently.
+
+Of course, this is overkill for accessing a single data store, what it's really intended for is
 to provide access to multiple data stores regardless of the type of store.
         
 
