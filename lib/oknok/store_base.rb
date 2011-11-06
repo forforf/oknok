@@ -42,7 +42,7 @@ module Oknok
       self.all_classes << child unless self.all_classes.include? child
     end
 
-    attr_accessor :store_name, :oknok_name, :host
+    attr_accessor :store_name, :store_handle, :host
     attr_reader :store_data
 
     def initialize(store_name, store_data)
@@ -52,6 +52,7 @@ module Oknok
       @store_data = store_data
       @host = StoreNameLookup.config_reader(store_data)
       @user = store_data['user']
+      @store_handle = nil
     end
 
     def eql? other
@@ -89,6 +90,7 @@ module Oknok
         #TODO: I don't like the long if statement with returns, but can't think of a cleaner way at the moment
         if resp_ex.respond_to?(:keys) && resp_ex["db_name"] == store_name
           init_status = :access
+          @store_handle = store
           @status_obj = connection_status(init_status)
           dummy_data = {:dummy => "Dummy"}.to_json
           #check if store can be written to (and read)
@@ -133,6 +135,7 @@ module Oknok
         store = DBI.connect dbi_host, user, pw
         row = store.select_one("SELECT VERSION()")
         @status_obj = connection_status(:access)
+        @store_handle = store
         store.do "DROP TABLE IF EXISTS dummy"
         store.do "CREATE TABLE dummy (
                     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -161,6 +164,7 @@ module Oknok
       begin
         native_resp = FileUtils.mkdir_p(file_store_path)
         @status_obj = connection_status(:access)
+        @store_handle = file_store_path
       rescue Errno::EACCES
         @status_obj = connection_status(:access_denied)
       end
@@ -182,6 +186,7 @@ module Oknok
           begin
             sdb_store.create_domain(store_name)
             connection_status(:access)
+            @store_handle = sdb_store
           rescue AwsSdb::ConnectionError => e
             puts "Rescued ConnectionError: #{e.message}"
             if e.message =~ /403/

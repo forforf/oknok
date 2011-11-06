@@ -236,22 +236,27 @@ describe "StoreAccess with real data store object" do
   
   it "can access couch obj" do
     @couch_obj.status_obj.class.should == StoreAccess::Access
+    @couch_obj.store_handle.should_not == nil
   end  
   
   it "can access file obj" do
     @file_obj.status_obj.class.should == StoreAccess::Access
+    @file_obj.store_handle.should_not == nil
   end
   
   it "can access mysql obj" do
     @mysql_obj.status_obj.class.should == StoreAccess::Access
+    @mysql_obj.store_handle.class.should == DBI::DatabaseHandle
   end
   
   it "can access sdb_s3 obj" do
     @sdb_s3_obj.status_obj.class.should == StoreAccess::Access
+    @sdb_s3_obj.store_handle.class.should == AwsSdb::Service
   end
   
   it "sets NullStore Access to undefined" do
     @null_obj.status_obj.class.should == StoreAccess::Undefined
+    @null_obj.store_handle.should == nil
   end
   
 end
