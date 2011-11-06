@@ -28,9 +28,7 @@ shared_examples_for Oknok::StoreAccess  do
   
   #mock_obj should be derived from MockStoreClass
   it "provides Undefined Access object when there is no connection defined" do |mock_obj|
-    puts "Testing: #{mock_obj.respond_to?(:connection_status).inspect}"
     if mock_obj.respond_to?(:connection_status)
-      puts "OK"
       case mock_obj.connection_status
         when nil
           mock_obj.status_obj.class.should == Undefined
