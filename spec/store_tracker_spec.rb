@@ -67,6 +67,45 @@ describe Oknok::StoreTracker, "operation" do
       sto_obj.class.should_not == StoreBase
     end
   end
+  
+  it "can return a handle for a CouchDb store type" do
+    couchdb_stores = @tracker.get_store_types("couchdb")
+    couchdb_store = couchdb_stores.first
+    couchdb_store.class.should == Oknok::CouchDbStore
+    couchdb_store.class.store_type.should == "couchdb"
+    couchdb_store.status_obj.class.should == Oknok::StoreAccess::Access
+    couchdb_store.store_handle.class.should == CouchRest::Database
+    config_data = SensData.load(@config_file)
+    couchdb_store.store_handle.to_s.should =~ /iris/
+  end
 
+  it "can return a handle for a file store" do
+    couchdb_stores = @tracker.get_store_types("file")
+    couchdb_stores.size.should == 2
+    couchdb_stores.each do |sto|
+      handle = sto.store_handle
+      File.exists?(handle).should == true
+    end
+  end
+
+  it "can return a handle for a store named 'iris' store type" do
+    couchdb_store = @tracker.get_store_name("iris")
+    couchdb_store.class.should == Oknok::CouchDbStore
+    couchdb_store.class.store_type.should == "couchdb"
+    couchdb_store.status_obj.class.should == Oknok::StoreAccess::Access
+    couchdb_store.store_handle.class.should == CouchRest::Database
+    config_data = SensData.load(@config_file)
+    couchdb_store.store_handle.to_s.should =~ /iris/
+  end
+
+  it "can return a handle for a file stores named 'local_filesystem1' and 'local_filesystem2" do
+    file_store_names = ['local_filesystem1', 'local_filesystem2']
+    file_store_names.each do |sto_name|
+      file_store = @tracker.get_store_name(sto_name)
+      file_handle = file_store.store_handle
+      File.exists?(file_handle).should == true
+    end
+  end
+  
 end
 

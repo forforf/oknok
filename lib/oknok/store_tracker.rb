@@ -37,6 +37,16 @@ module Oknok
       end
       return sto_class
     end
+    
+    def get_store_name(sto_name)
+      sto_objs = @store_collection.select{|sto| sto.store_name == sto_name}
+      raise IndexError, "In #{self}: Data Store Objects with duplicate names found" unless sto_objs.size == 1
+      sto_obj = sto_objs.first
+    end
+    
+    def get_store_types(sto_type)
+      @store_collection.select{|sto| sto.class.store_type == sto_type}
+    end
 
     def parse_avail_stores
       @config_data['avail_stores']
