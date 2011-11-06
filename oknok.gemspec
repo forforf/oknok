@@ -24,13 +24,10 @@ Gem::Specification.new do |s|
   s.add_development_dependency "psych"
   
   #Core Dependencies
-  s.add_runtime_dependency "uri"
-  s.add_runtime_dependency "open-uri"
   s.add_runtime_dependency "json"
   
   #Built-in Library Dependencies
   s.add_runtime_dependency "rest-client"
-  s.add_runtime_dependency "fileutils"
   s.add_dependency(%q{couchrest}, ["~> 1.0.2"])
   s.add_dependency(%q{mysql}, ["~> 2.8.1"])
   s.add_dependency(%q{dbi}, ["~> 0.4.5"])
