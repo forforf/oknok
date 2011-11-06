@@ -19,14 +19,22 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # specify any dependencies here; for example:
-  
+  #Test Dependencies
   s.add_development_dependency "rspec"
-  # s.add_runtime_dependency "rest-client"
-
-  #s.add_dependency(%q{couchrest}, ["~> 1.0.2"])
-  #s.add_dependency(%q{mysql}, ["~> 2.8.1"])
-  #s.add_dependency(%q{dbi}, ["~> 0.4.5"])
+  s.add_development_dependency "psych"
+  
+  #Core Dependencies
+  s.add_runtime_dependency "uri"
+  s.add_runtime_dependency "open-uri"
+  s.add_runtime_dependency "json"
+  
+  #Built-in Library Dependencies
+  s.add_runtime_dependency "rest-client"
+  s.add_runtime_dependency "fileutils"
+  s.add_dependency(%q{couchrest}, ["~> 1.0.2"])
+  s.add_dependency(%q{mysql}, ["~> 2.8.1"])
+  s.add_dependency(%q{dbi}, ["~> 0.4.5"])
   #s.add_dependency(%q{aws-s3}, ["~> 0.6.2"])
   #s.add_dependency(%q{aws-sdb}, ["~> 0.3.1"])
-  #s.add_dependency(%q{forforf-aws-sdb}, ["~> 0.5.3"])
+  s.add_dependency(%q{forforf-aws-sdb}, ["~> 0.5.3"])
 end
