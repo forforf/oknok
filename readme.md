@@ -2,6 +2,8 @@
 
 Oknok uses a configuration file to load a set of persistent data stores.
 
+TODOs: Update dependencies in gemspec
+
 ## The Basics
 ### An example configuration file that will load a CouchDb instance located at iriscouch.com.
 
