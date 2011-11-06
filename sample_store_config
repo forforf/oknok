@@ -49,7 +49,7 @@ avail_stores:
     host: 'http://couchsurfer.iriscouch.com/ec2lookup/open_db'
     init_db: oknok
     user: open:open
-  dev_sdb_s3:
-    type: sdb_s3
+  dev_sdb:
+    type: sdb
     host: ~  #No Host needed
     user:   <access key here>:<secret key here> #or create your own lookp service

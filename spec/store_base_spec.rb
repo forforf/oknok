@@ -29,8 +29,8 @@ module OknokConfigData
         'init_db' => 'oknok',
         'user' => 'open:open'
       },
-      'test_sdb_s3' => {
-        'type' => 'sdb_s3',
+      'test_sdb' => {
+        'type' => 'sdb',
         'host' => nil,   #No Host needed
         'user' => "#{@@ak}:#{@@sak}" #or create your own lookp service
       }
@@ -49,7 +49,7 @@ describe Oknok::StoreBase, "basic initialization tasks" do
       'couchdb' => CouchDbStore,
       'file' => FileStore,
       'mysql' => MysqlStore,
-      'sdb_s3' => SdbS3Store,
+      'sdb' => SdbStore,
       :unknown => NullStore
     }
     #Map store handle to initialization data
@@ -69,14 +69,14 @@ describe Oknok::StoreBase, "basic initialization tasks" do
     #@file_args     = ["local_filesystem",config_data["local_filesystem"]]
     #@file_dup_args = ["local_filesystem_dup", config_data["local_filesystem_dup"]]
     #@mysql_args    = ["remote_mysql", config_data["remote_mysql"]]
-    #@sdb_s3_args   = ["test_sdb_s3", config_data["test_sdb_s3"]]
+    #@sdb_args   = ["test_sdb", config_data["test_sdb"]]
     #@null_args     = ["any_store_name", {}]
       
     @class_data_map = {
       CouchDbStore => @couch_args,
       FileStore => @file_args,
       MysqlStore => @mysql_args,
-      SdbS3Store => @sdb_s3_args,
+      SdbStore => @sdb_args,
       NullStore => @null_args
     }
   end
@@ -220,8 +220,8 @@ describe "StoreAccess with real data store object" do
     @couch_obj = CouchDbStore.new(*@couch_args)
     @mysql_args    = ["remote_mysql", config_data["remote_mysql"]]
     @mysql_obj = MysqlStore.new(*@mysql_args)
-    @sdb_s3_args   = ["test_sdb_s3", config_data["test_sdb_s3"]]
-    @sdb_s3_obj = SdbS3Store.new(*@sdb_s3_args)
+    @sdb_args   = ["test_sdb", config_data["test_sdb"]]
+    @sdb_obj = SdbStore.new(*@sdb_args)
     @null_args     = ["any_store_name", {}]
     @null_obj = NullStore.new(*@null_args)
   end
@@ -249,9 +249,9 @@ describe "StoreAccess with real data store object" do
     @mysql_obj.store_handle.class.should == DBI::DatabaseHandle
   end
   
-  it "can access sdb_s3 obj" do
-    @sdb_s3_obj.status_obj.class.should == StoreAccess::Access
-    @sdb_s3_obj.store_handle.class.should == AwsSdb::Service
+  it "can access sdb obj" do
+    @sdb_obj.status_obj.class.should == StoreAccess::Access
+    @sdb_obj.store_handle.class.should == AwsSdb::Service
   end
   
   it "sets NullStore Access to undefined" do
@@ -285,7 +285,8 @@ describe "included module behavior" do
       'couchdb' => CouchDbStore,
       'file' => FileStore,
       'mysql' => MysqlStore,
-      'sdb_s3' => SdbS3Store,
+      'sdb' => SdbStore,
+      'sdb' => SdbStore,
       :unknown => NullStore
     }
     #Map store handle to initialization data

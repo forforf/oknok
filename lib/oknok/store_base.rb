@@ -5,7 +5,7 @@ require 'dbi'
 require 'json'
 require 'fileutils'
 require 'aws_sdb'  #published as gem forforf-aws-sdb
-require 'aws/s3'  #TODO: Create config for this model too
+#require 'aws/s3'  #TODO: Create config for this model too
 
 require_relative 'store_access' #checks store accessibility
 require_relative 'store_name_lookup' #nameserver like function
@@ -171,11 +171,11 @@ module Oknok
     end
   end
 
-  class SdbS3Store < StoreBase
-    self.store_type = 'sdb_s3'
-    def initialize(store_name, sdb_s3_data)
-      super(store_name, sdb_s3_data)
-      userinfo = sdb_s3_data["user"]
+  class SdbStore < StoreBase
+    self.store_type = 'sdb'
+    def initialize(store_name, sdb_data)
+      super(store_name, sdb_data)
+      userinfo = sdb_data["user"]
       if userinfo
         aws_keys = userinfo.split ":"
         access_key = aws_keys.first
